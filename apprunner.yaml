@@ -1,0 +1,54 @@
+version: 1.0
+runtime: python311
+
+source:
+  type: git
+  repository: 
+    url: https://github.com/khaisarsgithub/DjangoApp
+    branch: main
+
+build:
+  commands:
+    pre-run:
+    - uname -a  # OS and kernel version.
+    - lsb_release -a # Linux distribution
+
+    install:
+      - sudo apt install -y virtualenv
+      - python3 -m venv venv
+      - source venv/bin/activate
+    #   - pip3 install -r requirements.txt
+      
+    build:
+      # Install the required dependencies using pip
+      - pip3 install -r requirements.txt
+
+    post-build:
+      # Collect static files and run database migrations
+      - python3 manage.py collectstatic --noinput
+      - python3 manage.py migrate
+
+    env:
+    # Set environment variables
+    - name: PYTHONPATH
+      value: "/app"
+    - name: DJANGO_SETTINGS_MODULE
+      value: "DjangoApp.settings"
+
+run:
+  command: gunicorn DjangoApp.wsgi:application --bind 0.0.0.0:8080
+
+instance_configuration:
+  cpu: 1024
+  memory: 2048
+
+network_configuration:
+  ingress_configuration:
+    is_publicly_accessible: true
+
+service:
+  name: DjangoApp
+  health_check:
+    path: /healthz
+
+    
